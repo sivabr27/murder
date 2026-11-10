@@ -1,0 +1,501 @@
+<title>FIRST Sight Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: ops console. Header with case clock, left case queue, right stage workspace with numbered stage tabs (the real process order). */
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --ink:#15202A; --muted:#5A6772; --line:#DCE2E5; --grid:#E8EDEF;
+  --accent:#1D6B58; --accent-soft:#E2EFEA; --red:#B42318; --red-soft:#FCEBE9; --amber:#A85A07; --amber-soft:#FDF2E3;
+  --green:#1E7B47; --green-soft:#E6F4EB; --parcel:#F1EEE4;
+  --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1418; --surface:#162027; --ink:#E4EBEE; --muted:#97A6B0; --line:#29363F; --grid:#1C2830;
+  --accent:#4DB496; --accent-soft:#163029; --red:#F27D70; --red-soft:#3A1F1C; --amber:#F0A65C; --amber-soft:#382A18;
+  --green:#5CC58B; --green-soft:#16301F; --parcel:#232C26; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1418; --surface:#162027; --ink:#E4EBEE; --muted:#97A6B0; --line:#29363F; --grid:#1C2830;
+  --accent:#4DB496; --accent-soft:#163029; --red:#F27D70; --red-soft:#3A1F1C; --amber:#F0A65C; --amber-soft:#382A18;
+  --green:#5CC58B; --green-soft:#16301F; --parcel:#232C26; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;max-width:1280px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:12px;align-items:center}
+.mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.brand h1{font-family:var(--f-display);font-size:20px;margin:0;letter-spacing:-.01em}
+.brand p{margin:0;color:var(--muted);font-size:12.5px}
+.clock{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.clock b{display:block;font-family:var(--f-mono);font-weight:500;color:var(--ink);font-size:15px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;margin-top:16px}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}}
+.queue h2,.panel h3{font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.case{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:var(--ink);font:inherit}
+.case:hover{border-color:var(--accent)}
+.case[aria-current="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.case .t{font-weight:600;font-size:13.5px}
+.case .s{color:var(--muted);font-size:12px;margin-top:2px}
+.case .row{display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.A{background:var(--green-soft);color:var(--green)} .pill.B{background:var(--amber-soft);color:var(--amber)} .pill.C{background:var(--red-soft);color:var(--red)}
+.pill.red{background:var(--red-soft);color:var(--red)} .pill.amber{background:var(--amber-soft);color:var(--amber)} .pill.ok{background:var(--green-soft);color:var(--green)} .pill.info{background:var(--grid);color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.stages{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.stage{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
+.stage span{font-family:var(--f-mono);color:var(--muted);margin-right:6px}
+.stage[aria-selected="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.stage[aria-selected="true"] span{color:inherit;opacity:.7}
+button:focus-visible,.case:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.lead{font-family:var(--f-display);font-size:19px;font-weight:600;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.src{display:inline-block;font-family:var(--f-mono);font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;margin-top:3px}
+.tablewrap{overflow-x:auto}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--grid)}
+.dot{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px}
+.dot.ok{background:var(--green-soft);color:var(--green)} .dot.miss{background:var(--red-soft);color:var(--red)} .dot.req{background:var(--amber-soft);color:var(--amber)}
+.flag{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.flag.red{border-left-color:var(--red)}
+.flag h4{margin:0 0 6px;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:6px 0}
+.vs div{background:var(--bg);border-radius:8px;padding:8px 10px}
+.vs b{display:block;font-family:var(--f-mono);font-weight:500;font-size:13px}
+.tierbox{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+@media (max-width:640px){.tierbox{grid-template-columns:minmax(0,1fr)}}
+.tier{border:1px solid var(--line);border-radius:10px;padding:12px;opacity:.55}
+.tier.on{opacity:1;border-width:2px}
+.tier.on.A{border-color:var(--green)} .tier.on.B{border-color:var(--amber)} .tier.on.C{border-color:var(--red)}
+.tier h5{margin:0 0 4px;font-family:var(--f-display);font-size:15px}
+.reasons li{margin-bottom:4px}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:9px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi small{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.kpi b{display:block;font-family:var(--f-display);font-size:20px;font-variant-numeric:tabular-nums}
+.map{width:100%;height:auto;display:block;border-radius:8px;background:var(--bg)}
+.video{position:relative;border-radius:12px;overflow:hidden;background:#0B1114;aspect-ratio:16/10;max-width:100%}
+.video img,.video svg.scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hud{position:absolute;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-family:var(--f-mono);font-size:11.5px;color:#E9F2EF}
+.hud span{background:rgba(8,14,16,.72);padding:4px 8px;border-radius:6px}
+.hud.t{top:10px} .hud.b{bottom:10px}
+.rec{color:#FF8A80}
+.prompt{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--grid);flex-wrap:wrap}
+.prompt input{font:inherit;font-family:var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:180px;max-width:100%}
+.field{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr);gap:4px 12px;padding:8px 0;border-bottom:1px solid var(--grid)}
+.field .k{color:var(--muted);font-size:12.5px}
+.field input{font:inherit;font-family:var(--f-mono);padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:130px}
+.total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px 0}
+.total b{font-family:var(--f-display);font-size:24px;font-variant-numeric:tabular-nums}
+.words{background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-size:13px}
+.warn{background:var(--red-soft);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:8px}
+.log{font-family:var(--f-mono);font-size:12px;color:var(--muted);max-height:140px;overflow:auto}
+.card-doc{max-width:860px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+.card-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.range{position:relative;height:46px;margin:14px 4px 6px}
+.range .bar{position:absolute;top:18px;height:10px;border-radius:5px;background:var(--accent-soft);border:1px solid var(--accent)}
+.range .mk{position:absolute;top:10px;width:2px;height:26px;background:var(--ink)}
+.range .lbl{position:absolute;top:38px;font-family:var(--f-mono);font-size:11px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+textarea{width:100%;min-height:150px;font-family:var(--f-mono);font-size:12px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+footer{margin-top:22px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (prefers-reduced-motion:no-preference){.panel,.flag{animation:rise .25s ease-out both}@keyframes rise{from{transform:translateY(4px)}to{transform:none}}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 15 L7 4 L11 11 L13 8 L18 15 Z" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="13" cy="5" r="1.8" fill="#fff"/></svg></div>
+      <div><h1>FIRST Sight</h1><p>Risk-tiered collateral assessment for LAP · concept prototype</p></div>
+    </div>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="queue">
+      <h2>Case queue</h2>
+      <div id="queue"></div>
+      <p class="note">Cases 1-3 are rebuilt from the three anonymised sample reports in the case pack. Case 4 is synthetic, to show the Tier A path.</p>
+    </aside>
+    <main>
+      <nav class="stages" role="tablist" id="stages"></nav>
+      <section id="view" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <footer>FAME 6.0 · Problem Statement 1 · Concept prototype built by the team for evaluation. Not an IDFC FIRST Bank system. Registry, map and comparable data are mocked from the sample reports or synthetic, and labelled as such.</footer>
+</div>
+
+<script>
+(function(){
+const STAGES=[["intake","Smart Intake"],["passport","Property Passport"],["checks","Cross-check and tier"],["vpip","Video inspection"],["copilot","Valuer Co-Pilot"],["card","Collateral Card"]];
+const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+const cr=n=>"₹"+(n/1e7).toFixed(2)+" Cr";
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function words(num){
+  num=Math.round(num); if(num===0) return "Rupees Zero Only";
+  const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const two=n=>n<20?a[n]:b[Math.floor(n/10)]+(n%10?" "+a[n%10]:"");
+  const three=n=>n>=100?a[Math.floor(n/100)]+" Hundred"+(n%100?" "+two(n%100):""):two(n);
+  const crore=Math.floor(num/1e7); let r=num%1e7; const lakh=Math.floor(r/1e5); r%=1e5; const th=Math.floor(r/1000); r%=1000;
+  const p=[]; if(crore) p.push(three(crore)+" Crore"); if(lakh) p.push(two(lakh)+" Lakh"); if(th) p.push(two(th)+" Thousand"); if(r) p.push(three(r));
+  return "Rupees "+p.join(" ")+" Only";
+}
+const median=arr=>{const s=[...arr].sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2};
+
+/* ---------- Case data (from the anonymised sample reports; case 4 synthetic) ---------- */
+const CASES=[
+{ id:1, title:"Residential building, Dehradun", sub:"Sample Report 1 · LAP · Uttarakhand", loan:1.75e7, type:"Residential", city:"Dehradun", municipal:true, floors:3, ageYrs:1, life:60,
+  docs:[["Sale deed (registered 2026, 3,831 sq ft)","ok","Deed OCR · page 1-4"],["RTI copy","ok","Uploaded by customer"],["Sanctioned building plan","miss","Not provided"],["Property tax receipt (PTR)","miss","Not provided"],["Key plan","miss","Not provided"]],
+  completeness:82,
+  plot:[["Sale deed",3831],["Record of rights (Bhulekh)",3831],["Net after proposed road widening",3549]],
+  surveys:null, coordOffset:6, bua:{actual:4278,sanctioned:3721,label:"Permissible as per bye-laws"}, planMissing:true, roadWidening:"24 m widening proposed; 15.86 ft of plot depth affected",
+  cersai:0, ownerMatch:true, recentTransferDays:280, negative:false,
+  passport:[
+    ["Ownership","Owner on deed matches record of rights","Bhulekh khatauni via ULI","ok"],
+    ["Land nature","Residential","Online revenue record","ok"],
+    ["Encumbrance","No subsisting charge found","State e-registration index","ok"],
+    ["CERSAI","No prior security interest","CERSAI search","ok"],
+    ["Zoning","Residential, within Nagar Nigam limits","Master plan GIS","ok"],
+    ["Road","47 ft today; 24 m (78.7 ft) widening proposed","Master plan road layer","amber"],
+    ["Circle rate","Rate lookup returned for the pin","e-registration GIS circle-rate map","ok"],
+    ["Building permission","No sanction found for this parcel","Municipal permission portal","red"],
+    ["Satellite","Structure first visible 2025; 3 storeys est.","Building-height rasters","info"]],
+  land:{area:3549,rate:9000}, building:{area:0,rate:0,note:"Only land value released (no sanctioned plan)"}, amenities:0, rent:0,
+  comps:[["0.4 km, plot",8600],["0.7 km, plot",9400],["0.9 km, plot",8200],["1.0 km, plot",9100],["1.3 km, plot",8800]],
+  issued:{fsvPct:80,wordsOk:true,dates:"Visit 25 May · report 26 May · signed 4 Jun 2026"},
+  geo:{lat:30.279861,lng:77.973972}, map:"widening"},
+{ id:2, title:"Commercial building, Dehradun", sub:"Sample Report 2 · LAP · Uttarakhand", loan:9.5e7, type:"Commercial", city:"Dehradun", municipal:true, floors:6, ageYrs:1, life:60,
+  docs:[["3 sale deeds (2022) + 2 gift deeds (2024)","ok","Deed OCR · 5 documents"],["Lease deed, 9 years (bank branch as tenant)","ok","Deed OCR"],["Sanctioned maps OC/0009 and OC/0015 (2024)","ok","Plan OCR"],["Sanction letters","ok","Uploaded"]],
+  completeness:94,
+  plot:[["Sum of 5 deeds",5192],["Sanctioned map (net)",4139]],
+  surveys:null, coordOffset:74, bua:{actual:24752,sanctioned:13611,label:"Sanctioned map"}, planMissing:false, roadWidening:"190 sq ft front shop falls in proposed widening",
+  cersai:0, ownerMatch:true, recentTransferDays:560, negative:false, satChange:"Height suggests 5 levels + roof shed vs stilt + 4 sanctioned",
+  passport:[
+    ["Ownership","5 deeds chain to 2 owners; matches record","Bhulekh via ULI","ok"],
+    ["Encumbrance","No subsisting charge found","State e-registration index","ok"],
+    ["CERSAI","No prior security interest","CERSAI search","ok"],
+    ["Zoning","Commercial, Rajpur Road, MC limits","Master plan GIS","ok"],
+    ["Road","68 ft; widening line touches front shop","Master plan road layer","amber"],
+    ["Sanction","OC/0015 coordinates 74 m from parcel; OC/0009 matches","Plan OCR + parcel polygon","amber"],
+    ["Rental","₹16,00,000 a month (registered lease)","Lease deed OCR","info"],
+    ["Satellite","5 levels + roof shed visible","Building-height rasters","amber"]],
+  land:{area:4139,rate:42000}, building:{area:13611,rate:2000,note:"Only sanctioned area valued"}, amenities:0, rent:1600000,
+  comps:[["0.3 km, commercial plot",40500],["0.6 km, commercial plot",44000],["0.8 km, commercial plot",39500],["1.1 km, commercial plot",42500],["1.4 km, commercial plot",41000]],
+  issued:{fsvPct:80,wordsOk:true,dates:"Visit 12 Jun · report 13 Jun 2026"},
+  geo:{lat:30.33666,lng:78.056372}, map:"offset"},
+{ id:3, title:"Residential building, Coimbatore", sub:"Sample Report 3 · LAP · Tamil Nadu", loan:1.6e7, type:"Residential", city:"Coimbatore", municipal:false, floors:2, ageYrs:14, life:59,
+  docs:[["Sale deed (2010)","ok","Deed OCR · Doc 5851/2010"],["Patta + FMB sketch","ok","eservices.tn.gov.in"],["Site sketch","ok","Uploaded"],["Property tax receipt","ok","Uploaded"],["EB bill","ok","Uploaded"],["Approved building plan","miss","Not provided"],["Layout plan","miss","Not provided"],["Rectification deed for survey numbers","req","Added on Day 0 by cross-check"]],
+  completeness:86,
+  plot:[["Sale deed",6000],["Patta",5920]],
+  surveys:{deed:["173A/1F"],map:["165/21","173A/1F","174A/1A"]}, coordOffset:9, bua:null, planMissing:true, roadWidening:null,
+  cersai:0, ownerMatch:true, recentTransferDays:5800, negative:false, layoutMissing:true,
+  passport:[
+    ["Ownership","Patta holder matches deed","TN e-services (patta)","ok"],
+    ["Survey numbers","Pin covers 165/21, 173A/1F, 174A/1A; deed lists 173A/1F only","FMB sketch + TNGIS","red"],
+    ["Land class","Residential Class I Type I","TNREGINET","ok"],
+    ["Encumbrance","No subsisting charge, 2010-2026","TNREGINET EC","ok"],
+    ["CERSAI","No prior security interest","CERSAI search","ok"],
+    ["Guideline value","₹500 / sq ft","TNREGINET guideline value","info"],
+    ["Local body","Village panchayat","Local body GIS","info"],
+    ["Satellite","Structure visible since 2016 or earlier; 2 storeys est.","Building-height rasters","ok"]],
+  land:{area:5920,rate:3910}, building:{area:5300,rate:1760,note:"Actual BUA, 14-year-old building"}, amenities:1500000, rent:0,
+  comps:[["0.5 km, plot",3650],["0.8 km, plot",4050],["1.0 km, plot",3800],["1.2 km, plot",3550],["1.6 km, plot",4200]],
+  issued:{fsvPct:85,wordsOk:false,wordsAsIssued:"Fifty Five Lakh Sixty Thousand and Twenty Rupees Only",dates:"Inspected 4 Jul · visit 7 Aug · report 10 Aug · signed 25 Aug 2026"},
+  geo:{lat:11.092555,lng:76.94705}, map:"survey"},
+{ id:4, title:"2BHK apartment, Coimbatore", sub:"Synthetic demo · top-up for existing customer", loan:3.8e6, type:"Residential apartment", city:"Coimbatore", municipal:true, floors:1, ageYrs:6, life:60, synthetic:true,
+  docs:[["Sale deed (2020)","ok","Deed OCR"],["Occupancy certificate","ok","Municipal portal"],["Society NOC","ok","Uploaded"],["Property tax receipt","ok","Uploaded"],["EB bill","ok","Uploaded"],["Existing IDFC home loan record","ok","Core banking"]],
+  completeness:97,
+  plot:[["Sale deed (built-up)",1150],["Approved plan (built-up)",1150]],
+  surveys:null, coordOffset:12, bua:{actual:1150,sanctioned:1150,label:"Approved plan"}, planMissing:false, roadWidening:null,
+  cersai:1, cersaiOwn:true, ownerMatch:true, recentTransferDays:2100, negative:false,
+  passport:[
+    ["Ownership","Matches deed and existing loan record","TNREGINET + core banking","ok"],
+    ["Encumbrance","Only IDFC's own existing charge","TNREGINET EC","ok"],
+    ["CERSAI","1 charge, held by IDFC (top-up)","CERSAI search","ok"],
+    ["Building","Occupancy certificate on record; 12 floors, flat on 5th","Municipal permission portal","ok"],
+    ["Prior valuation","IDFC valuation 2023: ₹76.0 lakh","Passport history","ok"],
+    ["Satellite","No change since 2020","Building-height rasters","ok"]],
+  land:{area:0,rate:0}, building:{area:1150,rate:7100,note:"Composite rate for apartment (built-up)"}, amenities:0, rent:0,
+  comps:[["Same complex, 2026",7250],["Same complex, 2025",6950],["0.4 km, apartment",7000],["0.7 km, apartment",7300],["0.9 km, apartment",6900]],
+  issued:null, geo:{lat:11.0796,lng:76.9997}, map:"apartment"}
+];
+
+/* ---------- Rules engine ---------- */
+function flagsFor(c){
+  const f=[];
+  if(c.plot.length>1){
+    const v=c.plot.map(p=>p[1]); const mx=Math.max(...v), mn=Math.min(...v); const d=(mx-mn)/mn*100;
+    const hi=c.plot.find(p=>p[1]===mx), lo=c.plot.find(p=>p[1]===mn);
+    if(d>2) f.push({sev:d>10?"red":"amber",title:`Plot area differs by ${d.toFixed(1)}% across documents`,a:[hi[0],hi[1].toLocaleString("en-IN")+" sq ft"],b:[lo[0],lo[1].toLocaleString("en-IN")+" sq ft"],action:"Value on the least area; confirm boundary on inspection"});
+  }
+  if(c.surveys){const miss=c.surveys.map.filter(s=>!c.surveys.deed.includes(s)); if(miss.length) f.push({sev:"red",title:"Survey numbers on the map do not match the deed",a:["Deed",c.surveys.deed.join(", ")],b:["FMB sketch + TNGIS",c.surveys.map.join(", ")],action:"Rectification deed added to customer checklist on Day 0"});}
+  if(c.coordOffset>30) f.push({sev:"amber",title:`Plan coordinates ${c.coordOffset} m from the parcel`,a:["Sanctioned map OC/0015","74 m off"],b:["Parcel polygon + OC/0009","Matches site"],action:"Confirm which sanction applies to this building"});
+  if(c.bua){const d=(c.bua.actual-c.bua.sanctioned)/c.bua.sanctioned*100; if(d>10) f.push({sev:d>25?"red":"amber",title:`Built-up area ${d.toFixed(1)}% above ${c.bua.label.toLowerCase()}`,a:["Actual (site / satellite)",c.bua.actual.toLocaleString("en-IN")+" sq ft"],b:[c.bua.label,c.bua.sanctioned.toLocaleString("en-IN")+" sq ft"],action:"Value only the sanctioned area; demolition-risk review"});}
+  if(c.planMissing){const red=c.municipal&&c.floors>2; f.push({sev:red?"red":"amber",title:red?"No sanctioned plan for a G+2 building in municipal limits":"Approved building plan not provided",a:["Floors on site",c.floors===3?"GF + 2 + mumty":"G + 1"],b:["Building permission","None found"],action:red?"Release land value only until plan is produced":"Collect plan or panchayat approval before disbursal"});}
+  if(c.layoutMissing) f.push({sev:"amber",title:"Layout plan not provided",a:["Layout approval","Not on file"],b:["Local body","Village panchayat"],action:"Collect layout approval or regularisation proof"});
+  if(c.roadWidening) f.push({sev:"amber",title:"Parcel touches a proposed road-widening line",a:["Master plan",c.roadWidening],b:["Valuation","Affected area excluded"],action:"Exclude affected area from value"});
+  if(c.cersai>0 && !c.cersaiOwn) f.push({sev:"red",title:"Prior charge on CERSAI",a:["CERSAI","Charge found"],b:["Customer declaration","None"],action:"Stop: possible duplicate pledge"});
+  if(!c.ownerMatch) f.push({sev:"red",title:"Owner name mismatch",a:["Deed",""],b:["Record of rights",""],action:"Stop: identity check"});
+  if(c.recentTransferDays<90) f.push({sev:"amber",title:"Property transferred in the last 90 days",a:["Registry","Recent sale"],b:["",""],action:"Check for inflated transfer"});
+  if(c.satChange) f.push({sev:"amber",title:"Satellite shows more levels than sanctioned",a:["Building-height rasters",c.satChange],b:["Sanctioned map","Stilt + 4"],action:"Confirm on inspection"});
+  const val=valuation(c), dev=Math.abs(val.rateUsed-val.avm)/val.avm*100;
+  if(dev>15) f.push({sev:dev>25?"red":"amber",title:`Valuer rate ${dev.toFixed(0)}% away from comparables`,a:["Valuer rate",inr(val.rateUsed)+"/sq ft"],b:["Comparables median",inr(val.avm)+"/sq ft"],action:"Second opinion"});
+  return f;
+}
+function valuation(c,o){
+  o=o||{};
+  const landRate=o.landRate??c.land.rate, bRate=o.bRate??c.building.rate;
+  const landV=c.land.area*landRate, bV=c.building.area*bRate, total=landV+bV+c.amenities;
+  const avm=median(c.comps.map(x=>x[1]));
+  const rateUsed=c.land.area?landRate:bRate;
+  return {landRate,bRate,landV,bV,total,fsv:total*0.8,avm,rateUsed,band:[total*0.9,total*1.1]};
+}
+function tierFor(c){
+  const f=flagsFor(c), red=f.filter(x=>x.sev==="red").length, amber=f.filter(x=>x.sev==="amber").length;
+  const v=valuation(c), ltv=c.loan/v.total*100; const reasons=[];
+  let t="A";
+  if(red){t="C";reasons.push(`${red} red flag${red>1?"s":""} found on Day 0`);}
+  if(c.loan>5e7){t="C";reasons.push("Loan above ₹5 crore");}
+  if(t!=="C"){
+    if(amber>=1){t="B";reasons.push(`${amber} amber flag${amber>1?"s":""} to check on site`);}
+    if(c.loan>1e7){t="B";reasons.push("Loan between ₹1 crore and ₹5 crore");}
+    if(c.completeness<90){t="B";reasons.push(`Data completeness ${c.completeness}% (below 90%)`);}
+    if(ltv>50){t="B";reasons.push(`LTV ${ltv.toFixed(0)}% (above 50%)`);}
+  }
+  if(t==="A") reasons.push("No red or amber flags","Loan ₹"+(c.loan/1e5).toFixed(0)+" lakh, LTV "+ltv.toFixed(0)+"%","Data completeness "+c.completeness+"%","Prior IDFC valuation on record");
+  return {t,reasons,red,amber,ltv,f};
+}
+
+/* ---------- State and routing ---------- */
+const state={cur:0,stage:"intake",edits:{},log:{},signed:{},vpip:{},photo:{}};
+const STAGE_IDS=STAGES.map(s=>s[0]);
+function readHash(){const h=location.hash.replace("#",""); if(STAGE_IDS.includes(h)) state.stage=h;}
+readHash(); window.addEventListener("hashchange",()=>{readHash();render();});
+function go(stage){state.stage=stage; if(location.hash!=="#"+stage) history.replaceState(null,"","#"+stage); render();}
+
+const t0=Date.now()-7*60*1000-42*1000;
+function clock(){
+  const c=CASES[state.cur], tr=tierFor(c); const s=Math.floor((Date.now()-t0)/1000);
+  const hh=String(Math.floor(s/3600)).padStart(2,"0"), mm=String(Math.floor(s%3600/60)).padStart(2,"0"), ss=String(s%60).padStart(2,"0");
+  const target={A:"24 hours",B:"48-72 hours",C:"Up to 4 days"}[tr.t];
+  document.getElementById("clock").innerHTML=`<div>Since login<b>Day 0 · ${hh}:${mm}:${ss}</b></div><div>Flags raised<b>${tr.red} red · ${tr.amber} amber</b></div><div>Target TAT<b>${target}</b></div>`;
+}
+setInterval(clock,1000);
+
+function renderQueue(){
+  document.getElementById("queue").innerHTML=CASES.map((c,i)=>{const tr=tierFor(c);return `<button class="case" data-i="${i}" aria-current="${i===state.cur}"><div class="t">${c.id}. ${esc(c.title)}</div><div class="s">${esc(c.sub)}</div><div class="row"><span class="mono">Loan ${c.loan>=1e7?cr(c.loan):"₹"+(c.loan/1e5).toFixed(0)+" L"}</span><span class="pill ${tr.t}">Tier ${tr.t}</span></div></button>`}).join("");
+  document.querySelectorAll(".case").forEach(b=>b.onclick=()=>{state.cur=+b.dataset.i;render();});
+}
+function renderStages(){
+  document.getElementById("stages").innerHTML=STAGES.map((s,i)=>`<button class="stage" role="tab" aria-selected="${s[0]===state.stage}" data-s="${s[0]}"><span>${i+1}</span>${s[1]}</button>`).join("");
+  document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>go(b.dataset.s));
+}
+
+/* ---------- Views ---------- */
+function vIntake(c){
+  const miss=c.docs.filter(d=>d[1]!=="ok");
+  return `<p class="lead">${miss.length?`Day 0 checklist: ${miss.length} item${miss.length>1?"s":""} to collect before any visit`:"All documents received on Day 0"}</p>
+  <p class="sub">The customer uploads once (app, web or WhatsApp). Extraction reads the deeds; the checklist tells the customer exactly what is missing today, not after the valuer's visit.</p>
+  <div class="grid2">
+   <div class="panel"><h3>Documents</h3>${c.docs.map(d=>`<div class="check"><span class="dot ${d[1]==="ok"?"ok":d[1]==="miss"?"miss":"req"}">${d[1]==="ok"?"✓":d[1]==="miss"?"!":"+"}</span><div><div>${esc(d[0])}</div><span class="src">${esc(d[2])}</span></div></div>`).join("")}
+   <p class="note" style="margin-top:10px">Data completeness for this case: <b>${c.completeness}%</b> (Tier A needs 90% or more).</p></div>
+   <div class="panel"><h3>Extracted from the deed</h3>
+    <table><tbody>
+     <tr><td>Property type</td><td>${esc(c.type)}</td></tr>
+     <tr><td>Plot / built-up area on deed</td><td class="mono">${c.plot[0][1].toLocaleString("en-IN")} sq ft</td></tr>
+     ${c.surveys?`<tr><td>Survey number on deed</td><td class="mono">${c.surveys.deed.join(", ")}</td></tr>`:""}
+     <tr><td>City</td><td>${esc(c.city)}</td></tr>
+     <tr><td>Pin dropped by customer</td><td class="mono">${c.geo.lat.toFixed(5)}, ${c.geo.lng.toFixed(5)}</td></tr>
+     <tr><td>Applicant name match</td><td><span class="pill ok">Matches KYC</span></td></tr>
+    </tbody></table>
+    <p class="note">Applicant names are hidden in this demo.</p>
+   </div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Try live AI extraction</h3>
+   <p class="sub">Paste any deed text (a synthetic sample is loaded). The model returns structured fields with the line each came from.</p>
+   <textarea id="deedtext">SALE DEED. This deed of sale is executed on 14 June 2010 at the Sub-Registrar Office, Thudiyalur, Coimbatore District, Doc No. 5851/2010. The vendor conveys to the purchaser all that piece of residential land measuring 6,000 sq ft situated in S.F. No. 173A/1F, Site No. 130, Vellakinar Village. Boundaries: East by Site No. 131, West by Site No. 129, North by 30 ft East-West Road, South by Site No. 133. Consideration: Rs. 18,00,000.</textarea>
+   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px"><button class="btn" id="extract">Extract fields</button><span class="note" id="exnote"></span></div>
+   <div id="exout" style="margin-top:10px"></div>
+  </div>`;
+}
+function bindIntake(){
+  const btn=document.getElementById("extract"); if(!btn) return;
+  btn.onclick=async()=>{
+    const out=document.getElementById("exout"), note=document.getElementById("exnote"); btn.disabled=true; note.textContent="Reading the deed…";
+    const text=document.getElementById("deedtext").value.slice(0,6000);
+    let rows=null, live=false;
+    try{
+      const sample=window.claude&&window.claude.use?await window.claude.use("sample"):null;
+      if(sample){
+        const res=await sample.json(`Extract fields from this Indian property deed. Return JSON {"fields":[{"field":string,"value":string,"evidence":string}]} with fields: deed type, registration date, document number, sub-registrar office, district, survey number(s), site/plot number, land area with unit, boundaries (E/W/N/S), consideration amount. evidence = the exact short phrase from the text. Use "not stated" if absent.\n\nDEED:\n${text}`,{modelTier:"quick"});
+        if(res&&Array.isArray(res.fields)){rows=res.fields.map(r=>[r.field,r.value,r.evidence]);live=true;}
+      }
+    }catch(e){}
+    if(!rows){
+      rows=[["Deed type","Sale deed","This deed of sale"],["Registration date","14 June 2010","executed on 14 June 2010"],["Document number","5851/2010","Doc No. 5851/2010"],["Sub-Registrar Office","Thudiyalur","Sub-Registrar Office, Thudiyalur"],["Survey number(s)","173A/1F","S.F. No. 173A/1F"],["Land area","6,000 sq ft","measuring 6,000 sq ft"],["Boundaries","E: Site 131 · W: Site 129 · N: 30 ft road · S: Site 133","Boundaries: East by…"],["Consideration","₹18,00,000","Rs. 18,00,000"]];
+    }
+    note.textContent=live?"Extracted live by the model.":"Live AI is not available in this view, so the stored extraction for this sample is shown.";
+    out.innerHTML=`<div class="tablewrap"><table><thead><tr><th>Field</th><th>Value</th><th>Evidence in text</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td class="mono">${esc(r[1])}</td><td class="note">${esc(r[2])}</td></tr>`).join("")}</tbody></table></div>`;
+    btn.disabled=false;
+  };
+}
+function mapSVG(c){
+  const pin=`<g><circle cx="300" cy="175" r="7" fill="var(--accent)"/><circle cx="300" cy="175" r="16" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/></g>`;
+  const grid=Array.from({length:12},(_,i)=>`<line x1="${i*55}" y1="0" x2="${i*55}" y2="330" stroke="var(--grid)"/>`).join("")+Array.from({length:7},(_,i)=>`<line x1="0" y1="${i*55}" x2="600" y2="${i*55}" stroke="var(--grid)"/>`).join("");
+  let body="";
+  if(c.map==="survey"){
+    body=`<polygon points="120,60 290,50 300,170 130,190" fill="var(--parcel)" stroke="var(--muted)"/><text x="190" y="120" font-size="13" fill="var(--muted)" font-family="IBM Plex Mono">165/21</text>
+    <polygon points="290,50 470,70 460,180 300,170" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="350" y="110" font-size="13" fill="var(--accent)" font-family="IBM Plex Mono">173A/1F</text><text x="335" y="128" font-size="11" fill="var(--accent)">in deed</text>
+    <polygon points="130,190 300,170 310,290 140,300" fill="var(--parcel)" stroke="var(--muted)"/><text x="190" y="250" font-size="13" fill="var(--muted)" font-family="IBM Plex Mono">174A/1A</text>
+    <rect x="248" y="140" width="96" height="70" fill="none" stroke="var(--red)" stroke-width="2.5"/><text x="352" y="225" font-size="12" fill="var(--red)">Building footprint spans 3 survey fields</text>
+    <rect x="0" y="305" width="600" height="25" fill="var(--grid)"/><text x="12" y="322" font-size="11" fill="var(--muted)">30 ft East-West Road</text>`;
+  } else if(c.map==="widening"){
+    body=`<rect x="0" y="0" width="600" height="70" fill="var(--grid)"/><text x="12" y="40" font-size="11" fill="var(--muted)">47 ft road today</text>
+    <rect x="0" y="70" width="600" height="38" fill="var(--red-soft)"/><line x1="0" y1="108" x2="600" y2="108" stroke="var(--red)" stroke-width="2" stroke-dasharray="8 5"/><text x="12" y="94" font-size="11" fill="var(--red)">Proposed 24 m widening line</text>
+    <polygon points="200,70 420,70 430,280 190,280" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="250" y="230" font-size="12" fill="var(--accent)">Plot 3,831 sq ft · net 3,549 sq ft</text>`;
+  } else if(c.map==="offset"){
+    body=`<rect x="0" y="0" width="70" height="330" fill="var(--grid)"/><text x="12" y="320" font-size="11" fill="var(--muted)" transform="rotate(-90 22 300)">Rajpur Road, 68 ft</text>
+    <polygon points="160,80 420,80 420,270 160,270" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="200" y="250" font-size="12" fill="var(--accent)">Parcel (OC/0009 matches)</text>
+    <rect x="70" y="150" width="90" height="40" fill="var(--amber-soft)" stroke="var(--amber)"/><text x="76" y="205" font-size="11" fill="var(--amber)">190 sq ft shop</text>
+    <circle cx="540" cy="110" r="7" fill="var(--amber)"/><line x1="300" y1="175" x2="540" y2="110" stroke="var(--amber)" stroke-dasharray="4 4"/><text x="430" y="95" font-size="12" fill="var(--amber)">OC/0015 point, 74 m</text>`;
+  } else {
+    body=`<rect x="140" y="60" width="320" height="220" fill="var(--parcel)" stroke="var(--muted)"/><text x="160" y="85" font-size="12" fill="var(--muted)">Residential complex, 12 floors</text>
+    <rect x="270" y="150" width="60" height="50" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="250" y="225" font-size="12" fill="var(--accent)">Flat 5B, 1,150 sq ft</text>`;
+  }
+  return `<svg class="map" viewBox="0 0 600 330" role="img" aria-label="Parcel map for case ${c.id}">${grid}${body}${pin}<text x="590" y="18" text-anchor="end" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono">${c.geo.lat.toFixed(5)}, ${c.geo.lng.toFixed(5)}</text></svg>`;
+}
+function vPassport(c){
+  const v=valuation(c);
+  return `<p class="lead">Property Passport built in 6 min 40 s from ${c.passport.length+2} sources</p>
+  <p class="sub">Every row carries its source. ULI first, then data partners, then state portals. Connector responses in this demo are mocked from the sample report.</p>
+  <div class="grid2">
+   <div class="panel"><h3>Parcel and pin</h3>${mapSVG(c)}<p class="note">Customer pin vs parcel polygon: ${c.coordOffset} m. Geofence for video inspection: 30 m.</p></div>
+   <div class="panel"><h3>Records fetched</h3><div class="tablewrap"><table><tbody>${c.passport.map(p=>`<tr><td style="width:34%">${esc(p[0])}<br><span class="pill ${p[3]}">${p[3]==="ok"?"Clear":p[3]==="red"?"Red":p[3]==="amber"?"Amber":"Info"}</span></td><td>${esc(p[1])}<br><span class="src">${esc(p[2])}</span></td></tr>`).join("")}</tbody></table></div></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Nearby comparables (synthetic for demo)</h3>
+   <div class="tablewrap"><table><thead><tr><th>Comparable</th><th class="num">₹ / sq ft</th></tr></thead><tbody>${c.comps.map(x=>`<tr><td>${esc(x[0])}</td><td class="num mono">${x[1].toLocaleString("en-IN")}</td></tr>`).join("")}<tr><td><b>Median</b></td><td class="num mono"><b>${v.avm.toLocaleString("en-IN")}</b></td></tr></tbody></table></div>
+  </div>`;
+}
+function vChecks(c){
+  const tr=tierFor(c);
+  const tiers=[["A","Desk + live video","Target 24 hours"],["B","Hybrid: short targeted visit","48-72 hours"],["C","Full visit, report pre-loaded","Up to 4 days"]];
+  return `<p class="lead">${tr.f.length?`${tr.f.length} mismatch${tr.f.length>1?"es":""} found on Day 0 · routed to Tier ${tr.t}`:"No mismatches found · routed to Tier A"}</p>
+  <p class="sub">Each flag shows the two sources that disagree and by how much. Rules are deterministic and owned by Credit Policy.</p>
+  ${tr.f.map(x=>`<div class="flag ${x.sev}"><h4><span class="pill ${x.sev}">${x.sev==="red"?"Red":"Amber"}</span>${esc(x.title)}</h4><div class="vs"><div><span class="note">${esc(x.a[0])}</span><b>${esc(x.a[1])}</b></div>${x.b[0]?`<div><span class="note">${esc(x.b[0])}</span><b>${esc(x.b[1])}</b></div>`:""}</div><div class="note">Action: ${esc(x.action)}</div></div>`).join("")||`<div class="panel"><p>All ${16} rules passed.</p></div>`}
+  <div class="panel" style="margin-top:6px"><h3>Inspection tier</h3>
+   <div class="tierbox">${tiers.map(t=>`<div class="tier ${t[0]} ${t[0]===tr.t?"on":""}"><h5>Tier ${t[0]}</h5><div>${t[1]}</div><div class="note">${t[2]}</div></div>`).join("")}</div>
+   <ul class="reasons">${tr.reasons.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>
+   ${c.issued&&c.issued.dates?`<p class="note">In the real case these issues surfaced only in the final report (${esc(c.issued.dates)}).</p>`:""}
+  </div>`;
+}
+const PROMPTS={
+  default:[["Show the electricity meter and read its number","04-117-2231-9"],["Pan to the north boundary and the road","30 ft"],["Walk to each floor and count the rooms",""],["Show the main door from outside with the house number",""]],
+};
+function vVpip(c){
+  const tr=tierFor(c); const st=state.vpip[c.id]||{done:{},meter:""};
+  const now=new Date(); const ts=now.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})+" "+now.toLocaleTimeString("en-IN",{hour12:false});
+  const img=state.photo[c.id];
+  const flats=`<svg class="scene" viewBox="0 0 640 400" aria-hidden="true"><rect width="640" height="400" fill="#22313A"/><rect y="320" width="640" height="80" fill="#2C3A33"/><rect x="200" y="20" width="240" height="300" fill="#B7AE9E"/>${Array.from({length:6},(_,r)=>Array.from({length:4},(_,k)=>`<rect x="${218+k*56}" y="${36+r*44}" width="36" height="26" fill="${r===3&&k===1?"#E7C46A":"#8FB3C4"}"/>`).join("")).join("")}<rect x="296" y="276" width="48" height="44" fill="#5A3C2C"/><text x="355" y="300" font-size="11" fill="#F2EBD9">5B</text></svg>`;
+  const scene=img?`<img src="${img}" alt="Uploaded inspection frame">`:c.map==="apartment"?flats:`<svg class="scene" viewBox="0 0 640 400" aria-hidden="true"><rect width="640" height="400" fill="#22313A"/><rect y="290" width="640" height="110" fill="#2C3A33"/><rect x="170" y="90" width="300" height="200" fill="#B9A98D"/><polygon points="160,95 320,30 480,95" fill="#7A4E3A"/><rect x="290" y="200" width="60" height="90" fill="#5A3C2C"/><rect x="200" y="130" width="60" height="45" fill="#8FB3C4"/><rect x="380" y="130" width="60" height="45" fill="#8FB3C4"/><rect x="200" y="215" width="50" height="40" fill="#8FB3C4"/><rect x="392" y="225" width="26" height="34" fill="#D8D2C2"/><text x="405" y="246" font-size="8" text-anchor="middle" fill="#222">METER</text></svg>`;
+  const ps=PROMPTS.default; const doneN=ps.filter((p,i)=>st.done[i]).length;
+  const meterOk=st.meter.replace(/\s/g,"")===ps[0][1];
+  return `<p class="lead">${tr.t==="C"?"Tier C case: video inspection is optional pre-work before the valuer's full visit":tr.t==="B"?"Tier B case: video first, then a short visit only for flagged items":"Tier A case: a 30-minute live video replaces the site visit"}</p>
+  <p class="sub">V-PIP mirrors RBI's video-KYC (V-CIP) controls: live session run by a trained bank official, GPS and time burned into frames, geofence on the parcel, randomised prompts, recording kept on bank servers. Camera access is simulated in this prototype.</p>
+  <div class="grid2">
+   <div class="panel"><div class="video">${scene}
+     <div class="hud t"><span><span class="rec">●</span> REC · bank official</span><span>${ts} IST</span></div>
+     <div class="hud b"><span>GPS ${c.geo.lat.toFixed(5)}, ${c.geo.lng.toFixed(5)}</span><span>Geofence ${Math.min(c.coordOffset,18)} m ✓ · Liveness ✓ · Device ✓</span></div></div>
+     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px"><label class="btn ghost" for="vfile">Use a site photo as the frame</label><input id="vfile" type="file" accept="image/*" hidden><span class="note">Stays in your browser.</span></div>
+   </div>
+   <div class="panel"><h3>Randomised prompts · ${doneN}/${ps.length} done</h3>
+    ${ps.map((p,i)=>`<div class="prompt"><input type="checkbox" id="p${i}" ${st.done[i]?"checked":""} style="width:auto"><label for="p${i}" style="flex:1;min-width:180px">${esc(p[0])}</label>${i===0?`<input id="meter" placeholder="Meter number" value="${esc(st.meter)}" aria-label="Meter number read on video"><span class="pill ${st.meter?(meterOk?"ok":"red"):"info"}">${st.meter?(meterOk?"Matches EB bill":"Does not match EB bill"):"EB bill: 04-117-2231-9"}</span>`:""}</div>`).join("")}
+    <p class="note" style="margin-top:10px">Prompts change every session, so a pre-recorded video fails. Two failed sessions move the case to Tier B automatically.</p>
+    <button class="btn" id="vdone" ${doneN===ps.length&&meterOk?"":"disabled"}>Close session and attach evidence</button><p class="note" id="vmsg" style="margin:8px 0 0">${st.closed?"Evidence attached to the case: video, 14 frames, GPS log.":"Complete all prompts and match the meter number to close the session."}</p>
+   </div>
+  </div>`;
+}
+function bindVpip(c){
+  const st=state.vpip[c.id]=state.vpip[c.id]||{done:{},meter:""};
+  document.querySelectorAll('.prompt input[type="checkbox"]').forEach((cb,i)=>cb.onchange=()=>{st.done[i]=cb.checked;render();});
+  const m=document.getElementById("meter"); if(m) m.onchange=()=>{st.meter=m.value;render();};
+  const f=document.getElementById("vfile"); if(f) f.onchange=()=>{const file=f.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{state.photo[c.id]=r.result;render();}; r.readAsDataURL(file);};
+  const d=document.getElementById("vdone"); if(d) d.onclick=()=>{st.closed=true;render();};
+}
+function vCopilot(c){
+  const e=state.edits[c.id]||{}; const v=valuation(c,e); const tr=tierFor(c); const signed=state.signed[c.id];
+  const log=state.log[c.id]||[];
+  const prefilled=[["Property type",c.type,"Deed + zoning"],["Plot area (least of documents)",c.land.area?c.land.area.toLocaleString("en-IN")+" sq ft":"Apartment (built-up basis)","Three-way area check"],["Age / residual life",`${c.ageYrs} years / ${c.life-c.ageYrs} years`,"Deed date + satellite history"],["Within municipal limits",c.municipal?"Yes":"No (village panchayat)","Local body GIS"],["Online land record verified","Yes","Record of rights via ULI"],["Caution / negative / OGL area","No / No / No","Bank negative-area layers"]];
+  if(c.bua) prefilled.splice(3,0,["Built-up: actual vs "+c.bua.label.toLowerCase(),`${c.bua.actual.toLocaleString("en-IN")} vs ${c.bua.sanctioned.toLocaleString("en-IN")} sq ft (${((c.bua.actual-c.bua.sanctioned)/c.bua.sanctioned*100).toFixed(2)}%)`,"Computed, not typed"]);
+  return `<p class="lead">Report pre-filled: the valuer verifies, judges the rates and signs</p>
+  <p class="sub">Fields show their source. Arithmetic, value in words and forced sale value follow bank policy automatically. Every edit is logged with a reason.</p>
+  <div class="grid2">
+   <div class="panel"><h3>Pre-filled fields</h3>${prefilled.map(p=>`<div class="field"><div class="k">${esc(p[0])}</div><div>${esc(p[1])}<br><span class="src">${esc(p[2])}</span></div></div>`).join("")}</div>
+   <div class="panel"><h3>Valuation · valuer's judgement</h3>
+    ${c.land.area?`<div class="field"><div class="k">Land rate (₹ / sq ft)</div><div><input id="lr" type="number" value="${v.landRate}" ${signed?"disabled":""}> <span class="note">× ${c.land.area.toLocaleString("en-IN")} = ${inr(v.landV)}</span><br><span class="src">Comparables median ${v.avm.toLocaleString("en-IN")}</span></div></div>`:""}
+    ${c.building.area?`<div class="field"><div class="k">${c.land.area?"Construction rate":"Composite rate"} (₹ / sq ft)</div><div><input id="br" type="number" value="${v.bRate}" ${signed?"disabled":""}> <span class="note">× ${c.building.area.toLocaleString("en-IN")} = ${inr(v.bV)}</span><br><span class="src">${esc(c.building.note)}</span></div></div>`:`<div class="field"><div class="k">Building</div><div>${esc(c.building.note)}</div></div>`}
+    ${c.amenities?`<div class="field"><div class="k">Amenities</div><div class="mono">${inr(c.amenities)}</div></div>`:""}
+    <div class="total"><span>Market value</span><b>${inr(v.total)}</b></div>
+    <div class="words">${words(v.total)}</div>
+    ${c.issued&&!c.issued.wordsOk?`<div class="warn">The issued report wrote this value in words as "${esc(c.issued.wordsAsIssued)}". FIRST Sight generates the words from the figure, so this error cannot reach credit.</div>`:""}
+    <div class="field"><div class="k">Forced sale value</div><div class="mono">${inr(v.fsv)} <span class="note">(bank policy 80%${c.issued&&c.issued.fsvPct!==80?`; issued report used ${c.issued.fsvPct}%`:""})</span></div></div>
+    <div class="field"><div class="k">LTV on requested loan</div><div class="mono">${(c.loan/v.total*100).toFixed(1)}%</div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">${signed?`<span class="pill ok">Signed by empanelled valuer · ${signed}</span>`:`<button class="btn" id="sign">Sign report digitally</button>`}<span class="note">Tier ${tr.t}</span></div>
+    <h3 style="margin-top:14px">Edit log</h3><div class="log">${log.length?log.map(l=>esc(l)).join("<br>"):"No edits yet. Change a rate to see it logged."}</div>
+   </div>
+  </div>`;
+}
+function bindCopilot(c){
+  const e=state.edits[c.id]=state.edits[c.id]||{}; const log=state.log[c.id]=state.log[c.id]||[];
+  const t=()=>new Date().toLocaleTimeString("en-IN",{hour12:false});
+  const lr=document.getElementById("lr"); if(lr) lr.onchange=()=>{const old=e.landRate??c.land.rate; e.landRate=+lr.value; log.push(`${t()} Land rate ${old} → ${e.landRate} (valuer judgement vs comparables)`); render();};
+  const br=document.getElementById("br"); if(br) br.onchange=()=>{const old=e.bRate??c.building.rate; e.bRate=+br.value; log.push(`${t()} Building rate ${old} → ${e.bRate} (valuer judgement)`); render();};
+  const s=document.getElementById("sign"); if(s) s.onclick=()=>{state.signed[c.id]=new Date().toLocaleString("en-IN",{hour12:false}); log.push(`${t()} Report signed; fields locked`); render();};
+}
+function vCard(c){
+  const e=state.edits[c.id]||{}; const v=valuation(c,e); const tr=tierFor(c);
+  const lo=v.band[0], hi=v.band[1], min=lo*0.85, max=hi*1.15, pos=x=>((x-min)/(max-min)*100).toFixed(1)+"%";
+  const fsvPos=pos(Math.max(v.fsv,min));
+  return `<div class="card-doc">
+   <div class="card-head"><div><p class="lead" style="margin:0">Collateral Card · Case ${c.id}</p><div class="note">${esc(c.title)} · ${esc(c.sub)}</div></div><div style="text-align:right"><span class="pill ${tr.t}">Tier ${tr.t}</span><div class="note" style="margin-top:4px">${state.signed[c.id]?"Valuer signed "+esc(state.signed[c.id]):"Awaiting valuer signature"}</div></div></div>
+   <div class="kpis">
+    <div class="kpi"><small>Market value</small><b>${cr(v.total)}</b></div>
+    <div class="kpi"><small>Forced sale value</small><b>${cr(v.fsv)}</b></div>
+    <div class="kpi"><small>Requested loan</small><b>${c.loan>=1e7?cr(c.loan):"₹"+(c.loan/1e5).toFixed(0)+" L"}</b></div>
+    <div class="kpi"><small>LTV</small><b>${(c.loan/v.total*100).toFixed(1)}%</b></div>
+   </div>
+   <h3 style="font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0">Value range (±10% band) and forced sale value</h3>
+   <div class="range"><div class="bar" style="left:${pos(lo)};width:calc(${pos(hi)} - ${pos(lo)})"></div><div class="mk" style="left:${pos(v.total)}"></div><div class="mk" style="left:${fsvPos};background:var(--amber)"></div>
+     <div class="lbl" style="left:${pos(lo)}">${cr(lo)}</div><div class="lbl" style="left:${pos(v.total)}">${cr(v.total)}</div><div class="lbl" style="left:${pos(hi)}">${cr(hi)}</div><div class="lbl" style="left:${fsvPos};top:-6px;color:var(--amber)">FSV</div></div>
+   <div class="grid2" style="margin-top:18px">
+    <div><h3 style="font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Flags for credit</h3>${tr.f.length?tr.f.map(x=>`<div class="check"><span class="pill ${x.sev}">${x.sev==="red"?"Red":"Amber"}</span><div>${esc(x.title)}<div class="note">${esc(x.action)}</div></div></div>`).join(""):`<p>No flags. All rules passed.</p>`}</div>
+    <div><h3 style="font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Evidence and sources</h3>
+     <div class="check"><span class="dot ok">✓</span><div>${c.docs.filter(d=>d[1]==="ok").length} documents read · ${c.passport.length} records fetched</div></div>
+     <div class="check"><span class="dot ok">✓</span><div>Comparables median ${inr(v.avm)}/sq ft vs rate used ${inr(v.rateUsed)}/sq ft</div></div>
+     <div class="check"><span class="dot ${state.vpip[c.id]&&state.vpip[c.id].closed?"ok":"req"}">${state.vpip[c.id]&&state.vpip[c.id].closed?"✓":"…"}</span><div>Video inspection ${state.vpip[c.id]&&state.vpip[c.id].closed?"attached":"not yet attached"}</div></div>
+     <div class="check"><span class="dot ok">✓</span><div>${words(v.total)}</div></div>
+    </div>
+   </div>
+  </div>`;
+}
+
+function render(){
+  renderQueue(); renderStages(); clock();
+  const c=CASES[state.cur]; const view=document.getElementById("view");
+  const map={intake:vIntake,passport:vPassport,checks:vChecks,vpip:vVpip,copilot:vCopilot,card:vCard};
+  view.innerHTML=map[state.stage](c);
+  if(state.stage==="intake") bindIntake();
+  if(state.stage==="vpip") bindVpip(c);
+  if(state.stage==="copilot") bindCopilot(c);
+}
+render();
+})();
+</script>
