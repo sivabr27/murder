@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Impeccable engine binaries (downloaded per-platform on first run)
+.claude/skills/impeccable/scripts/bin/
